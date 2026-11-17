@@ -1,0 +1,6 @@
+{
+  "name": "Pulso Productivo — Extensión Chrome de Productividad",
+  "description": "Extensión para Google Chrome (Manifest V3) y tablero de productividad local con tareas manuales, alertas, gráficos por actividad, frases motivacionales y exportación a PDF sin logins ni bases de datos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
