@@ -1,6 +1,21 @@
 import JSZip from 'jszip';
 
-async function generatePngIconBytes(size: number): Promise<Uint8Array> {
+const EXTENSION_ICON_URL = '/assets/aistudio/Dise_o_sin_t_tulo__2__68040bab.png';
+
+function loadIconImage(): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = EXTENSION_ICON_URL;
+  });
+}
+
+async function generatePngIconBytes(
+  size: number,
+  sourceImg?: HTMLImageElement | null
+): Promise<Uint8Array> {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -10,46 +25,18 @@ async function generatePngIconBytes(size: number): Promise<Uint8Array> {
     return new Uint8Array();
   }
 
-  // Rounded cobalt square background
-  const radius = Math.round(size * 0.22);
-  ctx.beginPath();
-  ctx.moveTo(radius, 0);
-  ctx.lineTo(size - radius, 0);
-  ctx.quadraticCurveTo(size, 0, size, radius);
-  ctx.lineTo(size, size - radius);
-  ctx.quadraticCurveTo(size, size, size - radius, size);
-  ctx.lineTo(radius, size);
-  ctx.quadraticCurveTo(0, size, 0, size - radius);
-  ctx.lineTo(0, radius);
-  ctx.quadraticCurveTo(0, 0, radius, 0);
-  ctx.closePath();
-
-  const grad = ctx.createLinearGradient(0, 0, size, size);
-  grad.addColorStop(0, '#2563EB');
-  grad.addColorStop(1, '#1E40AF');
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // Subtle emerald accent arc on bottom-right
-  ctx.beginPath();
-  ctx.arc(size * 0.74, size * 0.74, size * 0.14, 0, Math.PI * 2);
-  ctx.fillStyle = '#10B981';
-  ctx.fill();
-
-  // Crisp pulse + checkmark line in white
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = Math.max(1.5, size * 0.1);
-
-  ctx.beginPath();
-  ctx.moveTo(size * 0.2, size * 0.54);
-  ctx.lineTo(size * 0.36, size * 0.54);
-  ctx.lineTo(size * 0.45, size * 0.32);
-  ctx.lineTo(size * 0.56, size * 0.66);
-  ctx.lineTo(size * 0.66, size * 0.42);
-  ctx.lineTo(size * 0.8, size * 0.42);
-  ctx.stroke();
+  const img = sourceImg !== undefined ? sourceImg : await loadIconImage();
+  if (img) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, size, size);
+  } else {
+    const grad = ctx.createLinearGradient(0, 0, size, size);
+    grad.addColorStop(0, '#2563EB');
+    grad.addColorStop(1, '#1E40AF');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+  }
 
   const blob: Blob | null = await new Promise((resolve) =>
     canvas.toBlob((b) => resolve(b), 'image/png')
@@ -91,7 +78,7 @@ const MANIFEST_JSON = JSON.stringify(
 );
 
 const BACKGROUND_JS = `/* Pulso Productivo - Service Worker (Manifest V3) */
-const STORAGE_KEY = 'pulso_productivo_ext_v1';
+const STORAGE_KEY = 'pulso_productivo_ext_v2';
 
 async function syncAlarmsFromStorage() {
   if (!chrome.alarms) return;
@@ -161,7 +148,7 @@ chrome.notifications.onClicked.addListener(() => {
 
 const SHARED_JS = `/* Pulso Productivo - Almacenamiento Local y Motivación (Sin servidores) */
 (function (global) {
-  const STORAGE_KEY = 'pulso_productivo_ext_v1';
+  const STORAGE_KEY = 'pulso_productivo_ext_v2';
 
   const COLOR_PALETTE = [
     { label: 'Cobalto', hex: '#2563EB' },
@@ -195,21 +182,10 @@ const SHARED_JS = `/* Pulso Productivo - Almacenamiento Local y Motivación (Sin
     return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
   }
 
-  function getDefaultActivities() {
-    const now = new Date().toISOString();
-    return [
-      { id: 'act_dev', name: 'Desarrollo y Tecnología', color: '#2563EB', dailyGoalMinutes: 120, createdAt: now },
-      { id: 'act_content', name: 'Creación de Contenido', color: '#0D9488', dailyGoalMinutes: 60, createdAt: now },
-      { id: 'act_business', name: 'Negocios y Clientes', color: '#D97706', dailyGoalMinutes: 60, createdAt: now },
-      { id: 'act_ai', name: 'Capacitación e IA', color: '#4F46E5', dailyGoalMinutes: 45, createdAt: now },
-      { id: 'act_general', name: 'Organización General', color: '#475569', dailyGoalMinutes: 30, createdAt: now }
-    ];
-  }
-
   function getDefaultStore() {
     return {
       settings: { userName: '' },
-      activities: getDefaultActivities(),
+      activities: [],
       tasks: [],
       activeTimer: null
     };
@@ -222,7 +198,7 @@ const SHARED_JS = `/* Pulso Productivo - Almacenamiento Local y Motivación (Sin
         const parsed = res[STORAGE_KEY];
         return {
           settings: parsed.settings || { userName: '' },
-          activities: Array.isArray(parsed.activities) ? parsed.activities : getDefaultActivities(),
+          activities: Array.isArray(parsed.activities) ? parsed.activities : [],
           tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
           activeTimer: parsed.activeTimer || null
         };
@@ -234,7 +210,7 @@ const SHARED_JS = `/* Pulso Productivo - Almacenamiento Local y Motivación (Sin
         const parsed = JSON.parse(raw);
         return {
           settings: parsed.settings || { userName: '' },
-          activities: Array.isArray(parsed.activities) ? parsed.activities : getDefaultActivities(),
+          activities: Array.isArray(parsed.activities) ? parsed.activities : [],
           tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
           activeTimer: parsed.activeTimer || null
         };
@@ -494,9 +470,12 @@ const POPUP_HTML = `<!doctype html>
   </head>
   <body class="popup-body">
     <div class="topbar">
-      <div>
-        <h1 class="brand">Pulso Productivo</h1>
-        <p class="sub" id="greetingText">100% local · Sin cuentas ni servidores</p>
+      <div class="row">
+        <img src="icons/icon48.png" alt="Pulso Productivo" style="width: 32px; height: 32px; border-radius: 7px; object-fit: cover;" />
+        <div>
+          <h1 class="brand">Pulso Productivo</h1>
+          <p class="sub" id="greetingText">100% local · Sin cuentas ni servidores</p>
+        </div>
       </div>
       <button id="openDashboardBtn" class="btn-secondary">Panel y Gráficos</button>
     </div>
@@ -506,6 +485,14 @@ const POPUP_HTML = `<!doctype html>
       <div class="row">
         <input id="userNameInput" type="text" placeholder="Ej. Sofía, Carlos, Uriel..." />
         <button id="saveNameBtn" class="btn-primary">Guardar</button>
+      </div>
+    </div>
+
+    <div id="quickActCard" class="card hidden">
+      <label for="quickActInput">Día cero: crea tu primera actividad</label>
+      <div class="row">
+        <input id="quickActInput" type="text" placeholder="Ej. Trabajo, Estudio, Ventas..." />
+        <button id="quickActBtn" class="btn-primary">Añadir</button>
       </div>
     </div>
 
@@ -576,6 +563,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const nameCard = document.getElementById('nameCard');
   const userNameInput = document.getElementById('userNameInput');
   const saveNameBtn = document.getElementById('saveNameBtn');
+  const quickActCard = document.getElementById('quickActCard');
+  const quickActInput = document.getElementById('quickActInput');
+  const quickActBtn = document.getElementById('quickActBtn');
   const quoteBanner = document.getElementById('quoteBanner');
   const pendingNudge = document.getElementById('pendingNudge');
   const taskActivity = document.getElementById('taskActivity');
@@ -603,12 +593,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     taskActivity.innerHTML = '';
-    store.activities.forEach((act) => {
+    if (store.activities.length === 0) {
+      quickActCard.classList.remove('hidden');
       const opt = document.createElement('option');
-      opt.value = act.id;
-      opt.textContent = act.name;
+      opt.value = '';
+      opt.textContent = 'Crea una actividad primero';
       taskActivity.appendChild(opt);
-    });
+      addTaskBtn.disabled = true;
+    } else {
+      quickActCard.classList.add('hidden');
+      addTaskBtn.disabled = false;
+      store.activities.forEach((act) => {
+        const opt = document.createElement('option');
+        opt.value = act.id;
+        opt.textContent = act.name;
+        taskActivity.appendChild(opt);
+      });
+    }
 
     const pending = store.tasks.filter((t) => t.status === 'pending');
     const completed = store.tasks.filter((t) => t.status === 'completed');
@@ -696,9 +697,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     render();
   });
 
+  quickActBtn.addEventListener('click', async () => {
+    const actName = quickActInput.value.trim();
+    if (!actName) return;
+    store.activities.push({
+      id: createId('act'),
+      name: actName,
+      color: '#2563EB',
+      dailyGoalMinutes: 60,
+      createdAt: new Date().toISOString()
+    });
+    quickActInput.value = '';
+    await saveStore(store);
+    render();
+  });
+
   addTaskBtn.addEventListener('click', async () => {
     const title = taskTitle.value.trim();
-    if (!title) return;
+    if (!title || store.activities.length === 0) return;
     const status = taskStatus.value;
     const mins = Math.max(0, Number(taskMinutes.value) || 0);
     const alertMins = Number(taskAlert.value) || 0;
@@ -768,9 +784,12 @@ const DASHBOARD_HTML = `<!doctype html>
   </head>
   <body class="dash-body">
     <div class="topbar">
-      <div>
-        <h1 class="brand" style="font-size: 20px;">Pulso Productivo</h1>
-        <p class="sub" id="dashGreeting">Panel completo de productividad, alertas y reportes PDF</p>
+      <div class="row">
+        <img src="icons/icon48.png" alt="Pulso Productivo" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover;" />
+        <div>
+          <h1 class="brand" style="font-size: 20px;">Pulso Productivo</h1>
+          <p class="sub" id="dashGreeting">Panel completo de productividad, alertas y reportes PDF</p>
+        </div>
       </div>
       <div class="row">
         <input id="dashNameInput" type="text" placeholder="Tu nombre..." style="width: 180px;" />
@@ -1164,10 +1183,11 @@ export async function buildChromeExtensionZip(): Promise<Blob> {
   zip.file('CHROME_WEB_STORE_GUIDE.md', CHROME_STORE_GUIDE_MD);
   zip.file('PRIVACY_POLICY.md', PRIVACY_POLICY_MD);
 
+  const sourceImg = await loadIconImage();
   const [icon16, icon48, icon128] = await Promise.all([
-    generatePngIconBytes(16),
-    generatePngIconBytes(48),
-    generatePngIconBytes(128),
+    generatePngIconBytes(16, sourceImg),
+    generatePngIconBytes(48, sourceImg),
+    generatePngIconBytes(128, sourceImg),
   ]);
 
   zip.file('icons/icon16.png', icon16);

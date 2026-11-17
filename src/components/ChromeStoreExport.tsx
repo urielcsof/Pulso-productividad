@@ -31,13 +31,20 @@ export const ChromeStoreExport: React.FC = () => {
   return (
     <section aria-label="Publicar en Google Chrome Web Store" className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-6">
-        <div className="max-w-2xl space-y-1">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Paquete listo para Google Chrome Web Store (Manifest V3)
-          </h2>
-          <p className="text-sm text-slate-600">
-            Descarga el archivo <code className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">.zip</code> completo con iconos PNG (16, 48 y 128 px), Service Worker de alertas, generador PDF sin dependencias externas y guía de publicación.
-          </p>
+        <div className="flex items-start gap-4 max-w-2xl">
+          <img
+            src="/assets/aistudio/Dise_o_sin_t_tulo__2__68040bab.png"
+            alt="Ícono oficial de la extensión Pulso Productivo"
+            className="h-14 w-14 rounded-xl object-cover shrink-0 border border-slate-200"
+          />
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-slate-900">
+              Paquete listo para Google Chrome Web Store (Manifest V3)
+            </h2>
+            <p className="text-sm text-slate-600">
+              Descarga el archivo <code className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">.zip</code> completo con tu ícono en PNG (16, 48 y 128 px), inicio en día cero sin datos de ejemplo, Service Worker de alertas y generador PDF sin dependencias externas.
+            </p>
+          </div>
         </div>
 
         <button

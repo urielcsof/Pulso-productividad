@@ -107,20 +107,27 @@ export const ExtensionSimulator: React.FC<ExtensionSimulatorProps> = ({
           <div className="w-full max-w-[416px] rounded-xl border border-slate-300 bg-slate-50 shadow-lg overflow-hidden">
             {/* Simulated Chrome toolbar strip */}
             <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-              <div>
-                <p className="font-display text-sm font-bold text-slate-900">
-                  Pulso Productivo
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  {userName.trim()
-                    ? `Hola, ${userName.trim()} · LocalStorage`
-                    : '100% local · Sin cuentas'}
-                </p>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <img
+                  src="/assets/aistudio/Dise_o_sin_t_tulo__2__68040bab.png"
+                  alt="Ícono de Pulso Productivo"
+                  className="h-8 w-8 rounded-lg object-cover shrink-0 border border-slate-200"
+                />
+                <div className="min-w-0">
+                  <p className="font-display text-sm font-bold text-slate-900">
+                    Pulso Productivo
+                  </p>
+                  <p className="text-[11px] text-slate-500 truncate">
+                    {userName.trim()
+                      ? `Hola, ${userName.trim()} · LocalStorage`
+                      : '100% local · Sin cuentas'}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={onExportPdf}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 shrink-0"
               >
                 <FileDown className="h-3.5 w-3.5" aria-hidden="true" />
                 PDF

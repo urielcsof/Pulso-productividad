@@ -15,7 +15,6 @@ import {
 import {
   createId,
   formatMinutes,
-  getDefaultActivities,
   getInitialStore,
   saveStore,
 } from './utils/storage';
@@ -472,14 +471,6 @@ export default function App() {
     setActiveTab('activities');
   };
 
-  const handleRestoreDefaults = () => {
-    setStore((prev) => ({
-      ...prev,
-      activities:
-        prev.activities.length > 0 ? prev.activities : getDefaultActivities(),
-    }));
-  };
-
   const handleExportPdf = () => {
     exportProductivityPdf({
       userName: store.settings.userName,
@@ -526,12 +517,11 @@ export default function App() {
       <aside className="w-full lg:w-64 lg:shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white flex flex-col justify-between">
         <div className="p-5">
           <div className="flex items-center gap-2.5">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-display font-bold text-sm shrink-0"
-              aria-hidden="true"
-            >
-              P
-            </div>
+            <img
+              src="/assets/aistudio/Dise_o_sin_t_tulo__2__68040bab.png"
+              alt="Ícono de Pulso Productivo"
+              className="h-9 w-9 rounded-lg object-cover shrink-0 border border-slate-200"
+            />
             <div>
               <span className="font-display text-base font-bold tracking-tight text-slate-900 block leading-tight">
                 Pulso Productivo
@@ -629,7 +619,7 @@ export default function App() {
               <code className="font-mono">LocalStorage</code>.
             </p>
             <div className="flex flex-col gap-1.5 pt-1">
-              {(store.tasks.length > 0 || store.activities.length > 0) && (
+              {(store.tasks.length > 0 || store.activities.length > 0) ? (
                 <button
                   type="button"
                   onClick={() => setConfirmClearAll(true)}
@@ -638,15 +628,10 @@ export default function App() {
                   <RotateCcw className="h-3 w-3 shrink-0" aria-hidden="true" />
                   Limpiar todo y empezar de cero
                 </button>
-              )}
-              {store.activities.length === 0 && (
-                <button
-                  type="button"
-                  onClick={handleRestoreDefaults}
-                  className="inline-flex items-center gap-1 text-[11.5px] font-medium text-blue-600 hover:underline text-left"
-                >
-                  Restaurar actividades base
-                </button>
+              ) : (
+                <span className="text-[11.5px] text-slate-500">
+                  Día cero: 0 actividades y 0 tareas.
+                </span>
               )}
             </div>
           </div>
