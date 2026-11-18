@@ -19,7 +19,10 @@ import {
   saveStore,
 } from './utils/storage';
 import { exportProductivityPdf } from './utils/pdfExport';
-import { buildChromeExtensionZip } from './utils/extensionZipBuilder';
+import {
+  buildChromeExtensionZip,
+  DEFAULT_EXTENSION_VERSION,
+} from './utils/extensionZipBuilder';
 import { ProductivityCharts } from './components/ProductivityCharts';
 import { TaskManager } from './components/TaskManager';
 import { ActivityManager } from './components/ActivityManager';
@@ -483,11 +486,11 @@ export default function App() {
   const handleQuickDownloadExtension = async () => {
     try {
       setDownloadingZip(true);
-      const blob = await buildChromeExtensionZip();
+      const blob = await buildChromeExtensionZip(DEFAULT_EXTENSION_VERSION);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'pulso-productivo-chrome-extension.zip';
+      a.download = `pulso-productivo-v${DEFAULT_EXTENSION_VERSION}-chrome-extension.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();

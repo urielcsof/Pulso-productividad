@@ -1,22 +1,43 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   buildChromeExtensionZip,
-  EXTENSION_MANIFEST_PREVIEW,
+  createManifestJson,
+  DEFAULT_EXTENSION_VERSION,
+  isValidChromeVersion,
 } from '../utils/extensionZipBuilder';
 import { Check, Download, FileCode2, ShieldCheck } from 'lucide-react';
 
 export const ChromeStoreExport: React.FC = () => {
+  const [version, setVersion] = useState(DEFAULT_EXTENSION_VERSION);
   const [downloading, setDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
 
+  const versionValid = isValidChromeVersion(version);
+  const manifestPreview = useMemo(
+    () =>
+      createManifestJson(
+        versionValid ? version : DEFAULT_EXTENSION_VERSION
+      ),
+    [version, versionValid]
+  );
+
+  const bumpPatchVersion = () => {
+    const clean = versionValid ? version.trim() : DEFAULT_EXTENSION_VERSION;
+    const parts = clean.split('.').map((n) => Number(n));
+    while (parts.length < 3) parts.push(0);
+    parts[parts.length - 1] = Math.min(65535, (parts[parts.length - 1] || 0) + 1);
+    setVersion(parts.join('.'));
+  };
+
   const handleDownloadZip = async () => {
+    if (!versionValid) return;
     try {
       setDownloading(true);
-      const blob = await buildChromeExtensionZip();
+      const blob = await buildChromeExtensionZip(version.trim());
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = 'pulso-productivo-chrome-extension.zip';
+      anchor.download = `pulso-productivo-v${version.trim()}-chrome-extension.zip`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -42,32 +63,74 @@ export const ChromeStoreExport: React.FC = () => {
               Paquete listo para Google Chrome Web Store (Manifest V3)
             </h2>
             <p className="text-sm text-slate-600">
-              Descarga el archivo <code className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">.zip</code> completo con tu ícono en PNG (16, 48 y 128 px), inicio en día cero sin datos de ejemplo, Service Worker de alertas y generador PDF sin dependencias externas.
+              Descarga el archivo <code className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">.zip</code> con versión actualizada (<code className="font-mono text-xs">{versionValid ? version.trim() : DEFAULT_EXTENSION_VERSION}</code>), tu ícono en PNG (16, 48 y 128 px), inicio en día cero sin datos de ejemplo y Service Worker de alertas.
             </p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleDownloadZip}
-          disabled={downloading}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 transition-colors whitespace-nowrap shrink-0"
-        >
-          {downloaded ? (
-            <>
-              <Check className="h-4 w-4" aria-hidden="true" />
-              Paquete .zip descargado
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4" aria-hidden="true" />
-              {downloading
-                ? 'Generando paquete...'
-                : 'Descargar Extensión (.zip)'}
-            </>
-          )}
-        </button>
+        <div className="flex flex-wrap items-end gap-3 shrink-0">
+          <div>
+            <label
+              htmlFor="manifest-version-input"
+              className="mb-1 block text-xs font-medium text-slate-600"
+            >
+              Versión del manifiesto
+            </label>
+            <div className="flex items-center gap-1.5">
+              <input
+                id="manifest-version-input"
+                type="text"
+                value={version}
+                onChange={(e) => setVersion(e.target.value)}
+                placeholder="1.0.1"
+                className={`w-24 rounded-lg border px-2.5 py-2 font-mono text-sm tabular-nums focus:outline-none ${
+                  versionValid
+                    ? 'border-slate-300 bg-white text-slate-900 focus:border-blue-600'
+                    : 'border-red-400 bg-red-50 text-red-900'
+                }`}
+              />
+              <button
+                type="button"
+                onClick={bumpPatchVersion}
+                title="Incrementar versión para una nueva subida a Chrome Web Store"
+                className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 font-mono text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors whitespace-nowrap"
+              >
+                +0.0.1
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleDownloadZip}
+            disabled={downloading || !versionValid}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 transition-colors whitespace-nowrap shrink-0"
+          >
+            {downloaded ? (
+              <>
+                <Check className="h-4 w-4" aria-hidden="true" />
+                Paquete .zip descargado
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" aria-hidden="true" />
+                {downloading
+                  ? 'Generando paquete...'
+                  : `Descargar Extensión v${versionValid ? version.trim() : DEFAULT_EXTENSION_VERSION}`}
+              </>
+            )}
+          </button>
+        </div>
       </div>
+
+      {!versionValid && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-800"
+        >
+          Formato de versión no válido para Chrome Web Store. Usa de 1 a 4 enteros separados por puntos (ejemplo: <code className="font-mono font-semibold">1.0.1</code> o <code className="font-mono font-semibold">1.1.0</code>).
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Steps & Privacy */}
@@ -92,9 +155,7 @@ export const ChromeStoreExport: React.FC = () => {
                 <span className="font-semibold text-slate-900">
                   02. Subida a Developer Dashboard:
                 </span>{' '}
-                Sube directamente el mismo archivo{' '}
-                <code className="font-mono text-xs">pulso-productivo-chrome-extension.zip</code>{' '}
-                en la consola de Google Chrome Web Store.
+                Si ya subiste la versión <code className="font-mono text-xs">1.0.0</code>, usa esta versión superior (<code className="font-mono text-xs font-semibold">{versionValid ? version.trim() : DEFAULT_EXTENSION_VERSION}</code>) al subir el nuevo archivo <code className="font-mono text-xs">.zip</code>.
               </li>
               <li>
                 <span className="font-semibold text-slate-900">
@@ -151,10 +212,12 @@ export const ChromeStoreExport: React.FC = () => {
                 manifest.json (Manifest V3)
               </h3>
             </div>
-            <span className="font-mono text-xs text-slate-500">v1.0.0</span>
+            <span className="font-mono text-xs text-slate-500">
+              v{versionValid ? version.trim() : DEFAULT_EXTENSION_VERSION}
+            </span>
           </div>
           <pre className="flex-1 overflow-x-auto rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100">
-            <code>{EXTENSION_MANIFEST_PREVIEW}</code>
+            <code>{manifestPreview}</code>
           </pre>
         </div>
       </div>

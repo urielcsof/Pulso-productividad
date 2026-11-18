@@ -46,36 +46,56 @@ async function generatePngIconBytes(
   return new Uint8Array(buffer);
 }
 
-const MANIFEST_JSON = JSON.stringify(
-  {
-    manifest_version: 3,
-    name: 'Pulso Productivo — Tareas, Tiempo y Alertas',
-    short_name: 'Pulso Productivo',
-    version: '1.0.0',
-    description:
-      'Mide tu productividad con captura manual de tareas, alertas, gráficos por actividad, frases motivacionales y reporte PDF 100% local.',
-    permissions: ['storage', 'alarms', 'notifications'],
-    action: {
-      default_popup: 'popup.html',
-      default_title: 'Pulso Productivo',
-      default_icon: {
+export const DEFAULT_EXTENSION_VERSION = '1.0.1';
+
+export function isValidChromeVersion(version: string): boolean {
+  const parts = version.trim().split('.');
+  if (parts.length < 1 || parts.length > 4) return false;
+  return parts.every((part) => {
+    if (!/^(0|[1-9]\d*)$/.test(part)) return false;
+    const n = Number(part);
+    return n >= 0 && n <= 65535;
+  });
+}
+
+export function createManifestJson(
+  version: string = DEFAULT_EXTENSION_VERSION
+): string {
+  const safeVersion = isValidChromeVersion(version)
+    ? version.trim()
+    : DEFAULT_EXTENSION_VERSION;
+
+  return JSON.stringify(
+    {
+      manifest_version: 3,
+      name: 'Pulso Productivo — Tareas, Tiempo y Alertas',
+      short_name: 'Pulso Productivo',
+      version: safeVersion,
+      description:
+        'Mide tu productividad con captura manual de tareas, alertas, gráficos por actividad, frases motivacionales y reporte PDF 100% local.',
+      permissions: ['storage', 'alarms', 'notifications'],
+      action: {
+        default_popup: 'popup.html',
+        default_title: 'Pulso Productivo',
+        default_icon: {
+          '16': 'icons/icon16.png',
+          '48': 'icons/icon48.png',
+          '128': 'icons/icon128.png',
+        },
+      },
+      background: {
+        service_worker: 'background.js',
+      },
+      icons: {
         '16': 'icons/icon16.png',
         '48': 'icons/icon48.png',
         '128': 'icons/icon128.png',
       },
     },
-    background: {
-      service_worker: 'background.js',
-    },
-    icons: {
-      '16': 'icons/icon16.png',
-      '48': 'icons/icon48.png',
-      '128': 'icons/icon128.png',
-    },
-  },
-  null,
-  2
-);
+    null,
+    2
+  );
+}
 
 const BACKGROUND_JS = `/* Pulso Productivo - Service Worker (Manifest V3) */
 const STORAGE_KEY = 'pulso_productivo_ext_v2';
@@ -1168,10 +1188,12 @@ Pulso Productivo funciona **100% de manera local** en el navegador del usuario.
 Contacto del desarrollador: urielcsof@gmail.com
 `;
 
-export async function buildChromeExtensionZip(): Promise<Blob> {
+export async function buildChromeExtensionZip(
+  version: string = DEFAULT_EXTENSION_VERSION
+): Promise<Blob> {
   const zip = new JSZip();
 
-  zip.file('manifest.json', MANIFEST_JSON);
+  zip.file('manifest.json', createManifestJson(version));
   zip.file('background.js', BACKGROUND_JS);
   zip.file('shared.js', SHARED_JS);
   zip.file('pdf-builder.js', PDF_BUILDER_JS);
@@ -1197,4 +1219,6 @@ export async function buildChromeExtensionZip(): Promise<Blob> {
   return zip.generateAsync({ type: 'blob' });
 }
 
-export const EXTENSION_MANIFEST_PREVIEW = MANIFEST_JSON;
+export const EXTENSION_MANIFEST_PREVIEW = createManifestJson(
+  DEFAULT_EXTENSION_VERSION
+);
